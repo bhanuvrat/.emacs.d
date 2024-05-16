@@ -16,6 +16,16 @@
 	ring-bell-function 'ignore)
 #+END_SRC
 
+* colorize compilation buffer with ansi-term
+#+begin_src elisp
+
+(defun my-ansi-color-compilation-filter ()
+  "Colorize from the compilation output buffer."
+  (ansi-color-apply-on-region (point-min) (point-max)))
+
+(add-hook 'compilation-filter-hook 'my-ansi-color-compilation-filter)
+#+end_src
+
 
 * use-package for package management
 
@@ -63,67 +73,81 @@ magit installation
     :config
 
     )
+
+  (global-set-key (kbd "M-x") #'helm-M-x)
+  (global-set-key (kbd "C-x r b") #'helm-filtered-bookmarks)
+  (global-set-key (kbd "C-x C-f") #'helm-find-files)
+  (setq helm-split-window-in-side-p           nil ; open helm buffer inside current window, not occupy whole other window
+	helm-move-to-line-cycle-in-source     t ; move to end or beginning of source when reaching top or bottom of source.
+	helm-ff-search-library-in-sexp        t ; search for library in `require' and `declare-function' sexp.
+	helm-scroll-amount                    8 ; scroll 8 lines other window using M-<next>/M-<prior>
+	helm-ff-file-name-history-use-recentf t
+	helm-echo-input-in-header-line t
+	helm-split-window-default-side 'below
+	helm-window-prefer-horizontal-split nil)
 #+END_SRC
 
 ** programming modes
 #+BEGIN_SRC emacs-lisp
 
-    (setq treesit-language-source-alist
-	  '((bash "https://github.com/tree-sitter/tree-sitter-bash")
-	    (cmake "https://github.com/uyha/tree-sitter-cmake")
-	    (css "https://github.com/tree-sitter/tree-sitter-css")
-	    (elisp "https://github.com/Wilfred/tree-sitter-elisp")
-	    (go "https://github.com/tree-sitter/tree-sitter-go")
-	    (html "https://github.com/tree-sitter/tree-sitter-html")
-	    (javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
-	    (json "https://github.com/tree-sitter/tree-sitter-json")
-	    (make "https://github.com/alemuller/tree-sitter-make")
-	    (markdown "https://github.com/ikatyang/tree-sitter-markdown")
-	    (python "https://github.com/tree-sitter/tree-sitter-python")
-	    (toml "https://github.com/tree-sitter/tree-sitter-toml")
-	    (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
-	    (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
-	    (yaml "https://github.com/ikatyang/tree-sitter-yaml")
-	    (heex "https://github.com/phoenixframework/tree-sitter-heex.git")))
+  (setq treesit-language-source-alist
+	'((bash "https://github.com/tree-sitter/tree-sitter-bash")
+	  (cmake "https://github.com/uyha/tree-sitter-cmake")
+	  (css "https://github.com/tree-sitter/tree-sitter-css")
+	  (elisp "https://github.com/Wilfred/tree-sitter-elisp")
+	  (go "https://github.com/tree-sitter/tree-sitter-go")
+	  (html "https://github.com/tree-sitter/tree-sitter-html")
+	  (javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
+	  (json "https://github.com/tree-sitter/tree-sitter-json")
+	  (make "https://github.com/alemuller/tree-sitter-make")
+	  (markdown "https://github.com/ikatyang/tree-sitter-markdown")
+	  (python "https://github.com/tree-sitter/tree-sitter-python")
+	  (toml "https://github.com/tree-sitter/tree-sitter-toml")
+	  (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
+	  (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
+	  (yaml "https://github.com/ikatyang/tree-sitter-yaml")
+	  (heex "https://github.com/phoenixframework/tree-sitter-heex.git")
+	  (elixir "git@github.com:elixir-lang/tree-sitter-elixir.git")
+	  ))
 
-    (use-package heex-ts-mode
-      :mode "\\.heex\\'"
-      :config
-      (add-hook 'heex-ts-mode-hook #'setup-heex-ts-mode))
+  (use-package heex-ts-mode
+    :mode "\\.heex\\'"
+    :config
+    (add-hook 'heex-ts-mode-hook #'setup-heex-ts-mode))
 
-    (use-package elixir-mode
-      :ensure t)
-    (defun setup-heex-ts-mode ()
-      (setq-local company-backends '(company-capf)))
+  (use-package elixir-mode
+    :ensure t)
+  (defun setup-heex-ts-mode ()
+    (setq-local company-backends '(company-capf)))
 
-    (use-package tree-sitter-langs
-      :ensure t)
+  (use-package tree-sitter-langs
+    :ensure t)
 
-    (require 'elixir-mode)
-    (add-hook 'elixir-mode-hook 'hs-minor-mode)
+  (require 'elixir-mode)
+  (add-hook 'elixir-mode-hook 'hs-minor-mode)
 
-    (use-package tree-sitter
-      :ensure t
-      :config
-      (global-tree-sitter-mode)
-      (require 'tree-sitter-langs)
-      ;;(add-to-list 'tree-sitter-major-mode-language-alist '(heex-mode . "/Users/anuvrat/.emacs.d/elpa/tree-sitter-langs-20240512.2226/bin/heex.dylib"))
-      (add-to-list 'tree-sitter-major-mode-language-alist '(elixir-mode . heex))
-      (add-hook 'elixir-mode-hook #'tree-sitter-mode)
-      (add-hook 'elixir-mode-hook #'tree-sitter-hl-mode))
+  (use-package tree-sitter
+    :ensure t
+    :config
+    (global-tree-sitter-mode)
+    (require 'tree-sitter-langs)
+    ;;(add-to-list 'tree-sitter-major-mode-language-alist '(heex-mode . "/Users/anuvrat/.emacs.d/elpa/tree-sitter-langs-20240512.2226/bin/heex.dylib"))
+    (add-to-list 'tree-sitter-major-mode-language-alist '(elixir-mode . heex))
+    (add-hook 'elixir-mode-hook #'tree-sitter-mode)
+    (add-hook 'elixir-mode-hook #'tree-sitter-hl-mode))
 
-    (global-set-key (kbd "C-c C-o") 'hs-toggle-hiding)
+  (global-set-key (kbd "C-c C-o") 'hs-toggle-hiding)
 
-    (defun my-elixir-indent-region (start end)
-      (interactive "r")
-      (shell-command-on-region start end "mix format -" nil t))
+  (defun my-elixir-indent-region (start end)
+    (interactive "r")
+    (shell-command-on-region start end "mix format -" nil t))
 
-    (add-hook 'elixir-mode-hook
-	      (lambda ()
-		(local-set-key (kbd "C-M-\\") 'my-elixir-indent-region)))
-    (add-hook 'elixir-mode-hook
-	      (lambda ()
-		(message "Elixir mode hook triggered!")))
+  (add-hook 'elixir-mode-hook
+	    (lambda ()
+	      (local-set-key (kbd "C-M-\\") 'my-elixir-indent-region)))
+  (add-hook 'elixir-mode-hook
+	    (lambda ()
+	      (message "Elixir mode hook triggered!")))
 
 #+END_SRC
 
@@ -199,7 +223,25 @@ $ git clone --recursive https://github.com/joaotavora/yasnippet
   ;;   :ensure t
   ;;   :init
   ;;   (persp-mode))
+  (use-package perspective
+    :bind
+    ("C-x C-b" . persp-list-buffers)         ; or use a nicer switcher, see below
+    :custom
+    (persp-mode-prefix-key (kbd "C-c M-p"))  ; pick your own prefix key here
+    :init
+    (persp-mode))
+#+END_SRC
 
+** popwin
+#+BEGIN_SRC elisp
+  (use-package popwin
+   :ensure t
+   )
+  
+  (popwin-mode 1)
+  (setq display-buffer-function 'popwin:display-buffer)
+  (push '("^\*helm .+\*$" :regexp t) popwin:special-display-config)
+  (push '("^\*helm-.+\*$" :regexp t) popwin:special-display-config)
 #+END_SRC
 
 
@@ -247,7 +289,7 @@ $ git clone --recursive https://github.com/joaotavora/yasnippet
 	    treemacs-recenter-after-tag-follow       nil
 	    treemacs-recenter-after-project-jump     'always
 	    treemacs-recenter-after-project-expand   'on-distance
-	    treemacs-litter-directories              '("/node_modules" "/.venv" "/.cask")
+	    treemacs-litter-directories              '("/node_modules" "/.venv" "/.cask" "/deps")
 	    treemacs-project-follow-into-home        nil
 	    treemacs-show-cursor                     nil
 	    treemacs-show-hidden-files               t
@@ -316,17 +358,54 @@ $ git clone --recursive https://github.com/joaotavora/yasnippet
     :ensure t
     :config (treemacs-set-scope-type 'Perspectives))
 
-  (use-package treemacs-tab-bar ;;treemacs-tab-bar if you use tab-bar-mode
-    :after (treemacs)
-    :ensure t
-    :config (treemacs-set-scope-type 'Tabs))
+  ;; (use-package treemacs-tab-bar ;;treemacs-tab-bar if you use tab-bar-mode
+  ;;   :after (treemacs)
+  ;;   :ensure t
+  ;;   :config (treemacs-set-scope-type 'Tabs))
+
+#+END_SRC
+
+** lsp
+
+#+BEGIN_SRC elisp
+
+  (use-package lsp-mode
+    :init
+    ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
+    (setq lsp-keymap-prefix "C-c l")
+    :hook (;; replace XXX-mode with concrete major-mode(e. g. python-mode)
+	   (XXX-mode . lsp)
+	   ;; if you want which-key integration
+	   (lsp-mode . lsp-enable-which-key-integration))
+    :commands lsp)
+
+  ;; optionally
+  (use-package lsp-ui :commands lsp-ui-mode)
+  ;; if you are helm user
+  (use-package helm-lsp :commands helm-lsp-workspace-symbol)
+  ;; if you are ivy user
+  ;;(use-package lsp-ivy :commands lsp-ivy-workspace-symbol)
+  (use-package lsp-treemacs :commands lsp-treemacs-errors-list)
+
+  ;; optionally if you want to use debugger
+  (use-package dap-mode)
+  ;; (use-package dap-LANGUAGE) to load the dap adapter for your language
+
+  ;; optional if you want which-key integration
+  (use-package which-key
+    :config
+    (which-key-mode))
+
 
 #+END_SRC
 
 
-
 ** projectile
 #+BEGIN_SRC elisp
+  (use-package helm-projectile
+    :ensure t
+    )
+
   (use-package projectile
     :ensure t
     :init
@@ -338,6 +417,9 @@ $ git clone --recursive https://github.com/joaotavora/yasnippet
 		("C-c p" . projectile-command-map)
 
 		))
+  (projectile-global-mode)
+  (setq projectile-completion-system 'helm)
+  (helm-projectile-on)
 
 
 #+END_SRC
