@@ -6,8 +6,7 @@
   ;; Hide the startup message
   (setq inhibit-startup-message t)
   (setq tree-sitter-langs-dir "~/.emacs.d/source/tree-sitter-langs")
-  (add-to-list 'load-path "~/.emacs.d/tree-sitter-grammars/libtree-sitter-heex.so")
-  ;;(global-unset-key (kbd "M-m"))
+  ;; (global-unset-key (kbd "M-m"))
   (menu-bar-mode -1)
   (scroll-bar-mode -1)
   (setq make-backup-files nil
@@ -19,11 +18,11 @@
 * colorize compilation buffer with ansi-term
 #+begin_src elisp
 
-(defun my-ansi-color-compilation-filter ()
-  "Colorize from the compilation output buffer."
-  (ansi-color-apply-on-region (point-min) (point-max)))
+  (defun my-ansi-color-compilation-filter ()
+    "Colorize from the compilation output buffer."
+    (ansi-color-apply-on-region (point-min) (point-max)))
 
-(add-hook 'compilation-filter-hook 'my-ansi-color-compilation-filter)
+  (add-hook 'compilation-filter-hook 'my-ansi-color-compilation-filter)
 #+end_src
 
 
@@ -90,6 +89,7 @@ magit installation
 ** programming modes
 #+BEGIN_SRC emacs-lisp
 
+
   (setq treesit-language-source-alist
 	'((bash "https://github.com/tree-sitter/tree-sitter-bash")
 	  (cmake "https://github.com/uyha/tree-sitter-cmake")
@@ -115,46 +115,71 @@ magit installation
     :config
     (add-hook 'heex-ts-mode-hook #'setup-heex-ts-mode))
 
-  (use-package elixir-mode
-    :ensure t)
+  (use-package elixir-ts-mode
+    :ensure t
+    :hook
+    (
+     (elixir-ts-mode . flycheck-mode)
+     (elixir-ts-mode . smartparens-mode)
+     (elixir-ts-mode . mix-minor-mode)
+     (elixir-ts-mode . exunit-mode)
+     )
+    )
+
+
+  ;; (use-package elixir-mode
+  ;;   :ensure t)
+
+  ;; (add-to-list 'tree-sitter-modes 'elixir-ts-mode)
+
   (defun setup-heex-ts-mode ()
     (setq-local company-backends '(company-capf)))
 
   (use-package tree-sitter-langs
     :ensure t)
 
-  (require 'elixir-mode)
-  (add-hook 'elixir-mode-hook 'hs-minor-mode)
+  (require 'elixir-ts-mode)
+  (add-hook 'elixir-ts-mode-hook 'hs-minor-mode)
 
   (use-package tree-sitter
     :ensure t
     :config
     (global-tree-sitter-mode)
     (require 'tree-sitter-langs)
+
     ;;(add-to-list 'tree-sitter-major-mode-language-alist '(heex-mode . "/Users/anuvrat/.emacs.d/elpa/tree-sitter-langs-20240512.2226/bin/heex.dylib"))
-    (add-to-list 'tree-sitter-major-mode-language-alist '(elixir-mode . heex))
-    (add-hook 'elixir-mode-hook #'tree-sitter-mode)
-    (add-hook 'elixir-mode-hook #'tree-sitter-hl-mode))
+    (add-to-list 'tree-sitter-major-mode-language-alist '(elixir-ts-mode . heex))
+    (add-hook 'elixir-ts-mode-hook #'tree-sitter-mode)
+    (add-hook 'elixir-ts%-mode-hook #'tree-sitter-hl-mode))
 
   (global-set-key (kbd "C-c C-o") 'hs-toggle-hiding)
 
-  (defun my-elixir-indent-region (start end)
-    (interactive "r")
-    (shell-command-on-region start end "mix format -" nil t))
+  (use-package web-mode
+    :ensure t)
 
-  (add-hook 'elixir-mode-hook
-	    (lambda ()
-	      (local-set-key (kbd "C-M-\\") 'my-elixir-indent-region)))
-  (add-hook 'elixir-mode-hook
-	    (lambda ()
-	      (message "Elixir mode hook triggered!")))
-
+  (use-package polymode
+    :mode ("\.ex$" . poly-elixir-web-mode)
+    :config
+    (define-hostmode poly-elixir-hostmode :mode 'elixir-mode)
+    (define-innermode poly-liveview-expr-elixir-innermode
+      :mode 'web-mode
+      :head-matcher (rx line-start (* space) "~H" (= 3 (char "\"'")) line-end)
+      :tail-matcher (rx line-start (* space) (= 3 (char "\"'")) line-end)
+      :head-mode 'host
+      :tail-mode 'host
+      :allow-nested nil
+      :keep-in-mode 'host
+      :fallback-mode 'host)
+    (define-polymode poly-elixir-web-mode
+      :hostmode 'poly-elixir-hostmode
+      :innermodes '(poly-liveview-expr-elixir-innermode))
+    )
+  (setq web-mode-engines-alist '(("elixir" . "\\.ex\\'")))
 #+END_SRC
 
 ** rss / atom elfeed
 
 #+BEGIN_SRC elisp
-
 
   ;; Configure Elfeed
   (use-package elfeed
@@ -207,7 +232,7 @@ $ git clone --recursive https://github.com/joaotavora/yasnippet
     "b b" 'switch-to-buffer
     "p p" 'project-switch-project
     "s s" 'save-buffer
-    "p t" 'treemacs-projectile
+    ;; "p t" 'treemacs-projectile
     )
 
   (which-key-add-key-based-replacements "M-m" "Leader")
@@ -235,169 +260,33 @@ $ git clone --recursive https://github.com/joaotavora/yasnippet
 ** popwin
 #+BEGIN_SRC elisp
   (use-package popwin
-   :ensure t
-   )
-  
+    :ensure t
+    )
+
   (popwin-mode 1)
   (setq display-buffer-function 'popwin:display-buffer)
   (push '("^\*helm .+\*$" :regexp t) popwin:special-display-config)
   (push '("^\*helm-.+\*$" :regexp t) popwin:special-display-config)
 #+END_SRC
 
+** run mix format on save
 
-** treemacs
+#+begin_src elisp
+  (defun format-elixir-buffer ()
+    "Format the current buffer with `mix format`."
+    (interactive)
+    (when (eq major-mode 'elixir-mode)
+      (let ((elixir-buffer (current-buffer)))
+	(with-temp-buffer
+	  (call-process-region (point-min) (point-max) "mix" nil t nil "format")
+	  (with-current-buffer elixir-buffer
+	    (replace-buffer-contents (current-buffer)))))))
 
-#+BEGIN_SRC elisp
-  (use-package treemacs
-    :ensure t
-    :defer t
-    :init
-    (with-eval-after-load 'winum
-      (define-key winum-keymap (kbd "M-0") #'treemacs-select-window))
-    :config
-    (progn
-      (setq treemacs-collapse-dirs                   (if treemacs-python-executable 3 0)
-	    treemacs-deferred-git-apply-delay        0.5
-	    treemacs-directory-name-transformer      #'identity
-	    treemacs-display-in-side-window          t
-	    treemacs-eldoc-display                   'simple
-	    treemacs-file-event-delay                2000
-	    treemacs-file-extension-regex            treemacs-last-period-regex-value
-	    treemacs-file-follow-delay               0.2
-	    treemacs-file-name-transformer           #'identity
-	    treemacs-follow-after-init               t
-	    treemacs-expand-after-init               t
-	    treemacs-find-workspace-method           'find-for-file-or-pick-first
-	    treemacs-git-command-pipe                ""
-	    treemacs-goto-tag-strategy               'refetch-index
-	    treemacs-header-scroll-indicators        '(nil . "^^^^^^")
-	    treemacs-hide-dot-git-directory          t
-	    treemacs-indentation                     2
-	    treemacs-indentation-string              " "
-	    treemacs-is-never-other-window           nil
-	    treemacs-max-git-entries                 5000
-	    treemacs-missing-project-action          'ask
-	    treemacs-move-forward-on-expand          nil
-	    treemacs-no-png-images                   nil
-	    treemacs-no-delete-other-windows         t
-	    treemacs-project-follow-cleanup          nil
-	    treemacs-persist-file                    (expand-file-name ".cache/treemacs-persist" user-emacs-directory)
-	    treemacs-position                        'left
-	    treemacs-read-string-input               'from-child-frame
-	    treemacs-recenter-distance               0.1
-	    treemacs-recenter-after-file-follow      nil
-	    treemacs-recenter-after-tag-follow       nil
-	    treemacs-recenter-after-project-jump     'always
-	    treemacs-recenter-after-project-expand   'on-distance
-	    treemacs-litter-directories              '("/node_modules" "/.venv" "/.cask" "/deps")
-	    treemacs-project-follow-into-home        nil
-	    treemacs-show-cursor                     nil
-	    treemacs-show-hidden-files               t
-	    treemacs-silent-filewatch                nil
-	    treemacs-silent-refresh                  nil
-	    treemacs-sorting                         'alphabetic-asc
-	    treemacs-select-when-already-in-treemacs 'move-back
-	    treemacs-space-between-root-nodes        t
-	    treemacs-tag-follow-cleanup              t
-	    treemacs-tag-follow-delay                1.5
-	    treemacs-text-scale                      nil
-	    treemacs-user-mode-line-format           nil
-	    treemacs-user-header-line-format         nil
-	    treemacs-wide-toggle-width               70
-	    treemacs-width                           35
-	    treemacs-width-increment                 1
-	    treemacs-width-is-initially-locked       t
-	    treemacs-workspace-switch-cleanup        nil)
+  (add-hook 'before-save-hook 'format-elixir-buffer)
+#+end_src
 
-      ;; The default width and height of the icons is 22 pixels. If you are
-      ;; using a Hi-DPI display, uncomment this to double the icon size.
-      ;;(treemacs-resize-icons 44)
-
-      (treemacs-follow-mode t)
-      (treemacs-filewatch-mode t)
-      (treemacs-fringe-indicator-mode 'always)
-      (when treemacs-python-executable
-	(treemacs-git-commit-diff-mode t))
-
-      (pcase (cons (not (null (executable-find "git")))
-		   (not (null treemacs-python-executable)))
-	(`(t . t)
-	 (treemacs-git-mode 'deferred))
-	(`(t . _)
-	 (treemacs-git-mode 'simple)))
-
-      (treemacs-hide-gitignored-files-mode nil))
-    :bind
-    (:map global-map
-	  ("M-0"       . treemacs-select-window)
-	  ("C-x t 1"   . treemacs-delete-other-windows)
-	  ("C-x t t"   . treemacs)
-	  ("C-x t d"   . treemacs-select-directory)
-	  ("C-x t B"   . treemacs-bookmark)
-	  ("C-x t C-t" . treemacs-find-file)
-	  ("C-x t M-t" . treemacs-find-tag)))
-
-  (use-package treemacs-evil
-    :after (treemacs evil)
-    :ensure t)
-
-  (use-package treemacs-projectile
-    :after (treemacs projectile)
-    :ensure t)
-
-  (use-package treemacs-icons-dired
-    :hook (dired-mode . treemacs-icons-dired-enable-once)
-    :ensure t)
-
-  (use-package treemacs-magit
-    :after (treemacs magit)
-    :ensure t)
-
-  (use-package treemacs-persp ;;treemacs-perspective if you use perspective.el vs. persp-mode
-    :after (treemacs persp-mode) ;;or perspective vs. persp-mode
-    :ensure t
-    :config (treemacs-set-scope-type 'Perspectives))
-
-  ;; (use-package treemacs-tab-bar ;;treemacs-tab-bar if you use tab-bar-mode
-  ;;   :after (treemacs)
-  ;;   :ensure t
-  ;;   :config (treemacs-set-scope-type 'Tabs))
-
-#+END_SRC
 
 ** lsp
-
-#+BEGIN_SRC elisp
-
-  (use-package lsp-mode
-    :init
-    ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
-    (setq lsp-keymap-prefix "C-c l")
-    :hook (;; replace XXX-mode with concrete major-mode(e. g. python-mode)
-	   (XXX-mode . lsp)
-	   ;; if you want which-key integration
-	   (lsp-mode . lsp-enable-which-key-integration))
-    :commands lsp)
-
-  ;; optionally
-  (use-package lsp-ui :commands lsp-ui-mode)
-  ;; if you are helm user
-  (use-package helm-lsp :commands helm-lsp-workspace-symbol)
-  ;; if you are ivy user
-  ;;(use-package lsp-ivy :commands lsp-ivy-workspace-symbol)
-  (use-package lsp-treemacs :commands lsp-treemacs-errors-list)
-
-  ;; optionally if you want to use debugger
-  (use-package dap-mode)
-  ;; (use-package dap-LANGUAGE) to load the dap adapter for your language
-
-  ;; optional if you want which-key integration
-  (use-package which-key
-    :config
-    (which-key-mode))
-
-
-#+END_SRC
 
 
 ** projectile
@@ -436,6 +325,23 @@ $ git clone --recursive https://github.com/joaotavora/yasnippet
 #+END_SRC
 
 
+* org babel
+
+#+BEGIN_SRC elisp
+
+  (use-package ob-elixir)
+
+    ;; active Babel languages
+    (org-babel-do-load-languages
+     'org-babel-load-languages
+     '((R . t)
+       (emacs-lisp . t)
+       (python . t)
+       (elixir . t)
+       (shell . t)
+       ))
+
+#+END_SRC
 
 * footer
 
